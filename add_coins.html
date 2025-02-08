@@ -1,0 +1,208 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coins Requests</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Poppins:wght@300;400;600&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: #f4f7fc;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .container {
+    width: 90%;
+    max-width: 600px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+
+  h1 {
+    font-family: 'Roboto', sans-serif;
+    color: #333;
+    font-weight: 700;
+  }
+
+  #requests {
+    margin-top: 20px;
+  }
+
+  .card {
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+    text-align: left;
+  }
+
+  .card img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-top: 10px;
+  }
+
+  .button {
+    display: inline-block;
+    padding: 10px 15px;
+    margin-top: 10px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .accept {
+    background: #4CAF50;
+    color: white;
+  }
+
+  .decline {
+    background: #E74C3C;
+    color: white;
+  }
+
+  .button:hover {
+    opacity: 0.8;
+  }
+
+  #loader {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  .dots-loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .dots-loader div {
+    width: 12px;
+    height: 12px;
+    margin: 0 5px;
+    background-color: #007bff;
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+  }
+
+  .dots-loader div:nth-child(1) { animation-delay: -0.32s; }
+  .dots-loader div:nth-child(2) { animation-delay: -0.16s; }
+  .dots-loader div:nth-child(3) { animation-delay: 0s; }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+  }
+</style>
+
+<div id="loader">
+  <div class="dots-loader">
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="container">
+  <h1>Coins Requests</h1>
+  <div id="requests"></div>
+</div>
+
+<script>
+  const DEPLOY_URL = 'https://script.google.com/macros/s/AKfycbzUuenqJZRT1Mg8pUN59hGzgBKyHjTthvYwu--ULS-WTZ7Y6nRGmTdy6eM8k3LDKpX3/exec';
+
+  async function fetchRequests() {
+    showLoader();
+    try {
+      const response = await fetch(DEPLOY_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getCoinsData' })
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        displayRequests(data.coins);
+      } else {
+        alert('Failed to fetch data');
+      }
+    } catch (error) {
+      alert('Error fetching data');
+    }
+    hideLoader();
+  }
+
+  function displayRequests(coins) {
+    const requestsContainer = document.getElementById('requests');
+    requestsContainer.innerHTML = '';
+
+    coins.forEach(coin => {
+      const card = document.createElement('div');
+      card.classList.add('card');
+
+      card.innerHTML = `
+        <p><strong>Email:</strong> ${coin.email}</p>
+        <p><strong>Amount:</strong> ${coin.amount}</p>
+        <p><strong>Timestamp:</strong> ${coin.timestamp}</p>
+        <img src="${coin.image}" alt="Coin Image">
+        <button class="button accept" onclick="handleAction('accept', '${coin.email}', ${coin.amount}, '${coin.image}')">Accept</button>
+        <button class="button decline" onclick="handleAction('decline', '${coin.email}')">Decline</button>
+      `;
+
+      requestsContainer.appendChild(card);
+    });
+  }
+
+  async function handleAction(action, email, amount = 0, image = '') {
+    showLoader();
+    try {
+      const response = await fetch(DEPLOY_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: action === 'accept' ? 'acceptRequest' : 'declineRequest',
+          email: email,
+          amount: amount,
+          image: image
+        })
+      });
+
+      const data = await response.json();
+      if (data.status === 'success') {
+        alert(`Request ${action === 'accept' ? 'accepted' : 'declined'} successfully`);
+        fetchRequests();
+      } else {
+        alert(`Failed to ${action === 'accept' ? 'accept' : 'decline'} the request`);
+      }
+    } catch (error) {
+      alert('Error processing request');
+    }
+    hideLoader();
+  }
+
+  function showLoader() {
+    document.getElementById('loader').style.display = 'flex';
+  }
+
+  function hideLoader() {
+    document.getElementById('loader').style.display = 'none';
+  }
+
+  window.onload = fetchRequests;
+</script>
